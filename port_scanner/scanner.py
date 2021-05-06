@@ -24,17 +24,16 @@ class Scanner:
 
     def scan_udp_port(self, port: int):
         with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                           socket.IPPROTO_UDP) as sock, \
-                socket.socket(socket.AF_INET, socket.SOCK_RAW,
-                              socket.IPPROTO_UDP) as receiver:
+                           socket.IPPROTO_UDP) as sock,\
+                    socket.socket(socket.AF_INET,
+                                  socket.SOCK_RAW,
+                                  socket.IPPROTO_UDP) as receiver:
             receiver.settimeout(3)
             try:
-                sock.bind(('', 1023 + port))
-                receiver.bind(('', 1023 + port))
-                sock.sendto(b'Sample Text', (self.host, port))
+                sock.sendto(b'', (self.host, port))
                 data = receiver.recvfrom(1024)[0]
-                with self.print_lock:
-                    print(f'UDP {port} {self.get_protocol(port)}')
+                with self.__print_lock:
+                    print(f'UDP {port}')
             except socket.timeout:
                 pass
 
