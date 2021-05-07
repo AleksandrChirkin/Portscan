@@ -23,31 +23,37 @@ class Scanner:
                 t.start()
 
     def scan_udp_port(self, port: int):
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                           socket.IPPROTO_UDP) as sock,\
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
+                               socket.IPPROTO_UDP) as sock,\
                     socket.socket(socket.AF_INET,
                                   socket.SOCK_RAW,
                                   socket.IPPROTO_UDP) as receiver:
-            receiver.settimeout(3)
-            try:
+                receiver.settimeout(3)
                 sock.sendto(b'', (self.host, port))
                 data = receiver.recvfrom(1024)[0]
                 with self.print_lock:
                     print(f'UDP {port}')
-            except socket.timeout:
-                pass
+        except socket.timeout:
+            pass
+        except PermissionError:
+            with self.print_lock:
+                print(f'UDP {port}: Not enough rights')
 
     def scan_tcp_port(self, port: int):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.settimeout(0.5)
-            try:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.settimeout(0.5)
                 sock.connect((self.host, port))
                 with self.print_lock:
                     print(f'TCP {port} {self.get_protocol(port)}')
-            except socket.timeout:
-                pass
-            except ConnectionRefusedError:
-                pass
+        except socket.timeout:
+            pass
+        except ConnectionRefusedError:
+            pass
+        except PermissionError:
+            with self.print_lock:
+                print(f'TCP {port}: Not enough rights')
 
     @staticmethod
     def get_protocol(port: int):

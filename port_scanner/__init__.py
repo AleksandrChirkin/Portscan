@@ -18,7 +18,7 @@ def verify_user_input(port_range: str) -> Tuple[int, int]:
         port_start = int(port_range_valid.group(1))
         port_end = int(port_range_valid.group(2))
     except ValueError:
-        raise PortScannerError(port_range)
+        raise BadPortRangeError(port_range)
     return port_start, port_end
 
 
