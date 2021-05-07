@@ -32,7 +32,7 @@ class Scanner:
             try:
                 sock.sendto(b'', (self.host, port))
                 data = receiver.recvfrom(1024)[0]
-                with self.__print_lock:
+                with self.print_lock:
                     print(f'UDP {port}')
             except socket.timeout:
                 pass
@@ -55,7 +55,7 @@ class Scanner:
             return 'NTP'
         if port == 53:
             return 'DNS'
-        if port in [25, 465, 58]:
+        if port in [25, 465]:
             return 'SMTP'
         if port in [110, 995]:
             return 'POP3'
