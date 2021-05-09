@@ -1,12 +1,10 @@
-from port_scanner.errors import PortScannerError, UnknownHostError,\
-    BadPortRangeError
+from port_scanner.errors import PortScannerError, BadPortRangeError
 from port_scanner.scanner import Scanner
 from typing import List, Tuple
 import re
 
 
-__all__ = ['Scanner', 'PortScannerError', 'UnknownHostError',
-           'BadPortRangeError']
+__all__ = ['Scanner', 'PortScannerError', 'BadPortRangeError']
 
 
 def verify_user_input(port_range: str) -> Tuple[int, int]:

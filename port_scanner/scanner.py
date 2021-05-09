@@ -1,15 +1,11 @@
 import socket
 from threading import Lock, Thread
 from queue import Queue
-from port_scanner import UnknownHostError
 
 
 class Scanner:
     def __init__(self, host: str, port_start: int, port_end: int):
-        try:
-            self.host = socket.gethostbyname(host)
-        except socket.gaierror:
-            raise UnknownHostError(host)
+        self.host = host
         self.port_range = range(port_start, port_end + 1)
         self.ports_queue = Queue()
         self.print_lock = Lock()
@@ -38,7 +34,7 @@ class Scanner:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                                socket.IPPROTO_UDP) as sock:
-                sock.settimeout(1)
+                sock.settimeout(3)
                 sock.sendto(b'hello', (self.host, port))
                 sock.recvfrom(1024)
             protocol = self.get_protocol(port, 'udp')
@@ -52,7 +48,7 @@ class Scanner:
     def scan_tcp_port(self, port: int):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(0.5)
+                sock.settimeout(3)
                 sock.connect((self.host, port))
             protocol = self.get_protocol(port, 'tcp')
             with self.print_lock:
