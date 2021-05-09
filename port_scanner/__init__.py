@@ -22,7 +22,7 @@ def verify_user_input(port_range: str) -> Tuple[int, int]:
     return port_start, port_end
 
 
-def scan(t: bool, u: bool, ports: List[str], host: str):
+def scan(tcp_only: bool, udp_only: bool, ports: List[str], host: str):
     port_start, port_end = verify_user_input("-".join(ports))
     scanner = Scanner(host, port_start, port_end)
-    scanner.scan(t, u)
+    scanner.start_scan(tcp_only, udp_only)

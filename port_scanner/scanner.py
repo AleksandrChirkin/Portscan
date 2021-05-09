@@ -1,5 +1,6 @@
 import socket
-import threading
+from threading import Lock, Thread
+from queue import Queue
 from port_scanner import UnknownHostError
 
 
@@ -10,31 +11,39 @@ class Scanner:
         except socket.gaierror:
             raise UnknownHostError(host)
         self.port_range = range(port_start, port_end + 1)
-        self.print_lock = threading.Lock()
+        self.ports_queue = Queue()
+        self.print_lock = Lock()
 
-    def scan(self, tcp_only: bool, udp_only: bool):
-        if not udp_only or tcp_only:
-            for port in self.port_range:
-                t = threading.Thread(target=self.scan_tcp_port, args=(port,))
-                t.start()
-        if not tcp_only or udp_only:
-            for port in self.port_range:
-                t = threading.Thread(target=self.scan_udp_port, args=(port,))
-                t.start()
+    def start_scan(self, tcp_only: bool, udp_only: bool):
+        threads = []
+        for port in self.port_range:
+            if not udp_only or tcp_only:
+                self.ports_queue.put(port)
+                t = Thread(target=self.thread_scan, args=(self.scan_tcp_port,))
+                threads.append(t)
+            if not tcp_only or udp_only:
+                self.ports_queue.put(port)
+                t = Thread(target=self.thread_scan, args=(self.scan_udp_port,))
+                threads.append(t)
+        for thread in threads:
+            thread.start()
+        self.ports_queue.join()
+
+    def thread_scan(self, scan_func):
+        port = self.ports_queue.get()
+        scan_func(port)
+        self.ports_queue.task_done()
 
     def scan_udp_port(self, port: int):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                               socket.IPPROTO_UDP) as sock,\
-                    socket.socket(socket.AF_INET,
-                                  socket.SOCK_RAW,
-                                  socket.IPPROTO_UDP) as receiver:
-                receiver.settimeout(3)
-                sock.sendto(b'', (self.host, port))
-                data = receiver.recvfrom(1024)[0]
-                with self.print_lock:
-                    print(f'UDP {port}')
-        except socket.timeout:
+                               socket.IPPROTO_UDP) as sock:
+                sock.settimeout(1)
+                sock.sendto(b'hello', (self.host, port))
+                sock.recvfrom(1024)
+            protocol = self.get_protocol(port, 'udp')
+            print(f'UDP {port} {protocol}')
+        except (socket.timeout, OSError):
             pass
         except PermissionError:
             with self.print_lock:
@@ -45,30 +54,18 @@ class Scanner:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.settimeout(0.5)
                 sock.connect((self.host, port))
-                with self.print_lock:
-                    print(f'TCP {port} {self.get_protocol(port)}')
-        except socket.timeout:
-            pass
-        except ConnectionRefusedError:
+            protocol = self.get_protocol(port, 'tcp')
+            with self.print_lock:
+                print(f'TCP {port} {protocol}')
+        except (socket.timeout, OSError, ConnectionRefusedError):
             pass
         except PermissionError:
             with self.print_lock:
                 print(f'TCP {port}: Not enough rights')
 
     @staticmethod
-    def get_protocol(port: int):
-        if port == 123:
-            return 'NTP'
-        if port == 53:
-            return 'DNS'
-        if port in [25, 465]:
-            return 'SMTP'
-        if port in [110, 995]:
-            return 'POP3'
-        if port in [143, 993]:
-            return 'IMAP'
-        if port == 80:
-            return 'HTTP'
-        if port == 443:
-            return 'HTTPS'
-        return ''
+    def get_protocol(port: int, transport: str) -> str:
+        try:
+            return socket.getservbyport(port, transport).upper()
+        except OSError:
+            return ''
