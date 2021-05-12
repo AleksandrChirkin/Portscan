@@ -34,8 +34,8 @@ class Scanner:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                                socket.IPPROTO_UDP) as sock:
-                sock.settimeout(3)
-                sock.sendto(b'hello', (self.host, port))
+                sock.settimeout(1)
+                sock.sendto(b'ping', (self.host, port))
                 sock.recvfrom(1024)
             protocol = self.get_protocol(port, 'udp')
             print(f'UDP {port} {protocol}')
@@ -48,7 +48,7 @@ class Scanner:
     def scan_tcp_port(self, port: int):
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(3)
+                sock.settimeout(0.5)
                 sock.connect((self.host, port))
             protocol = self.get_protocol(port, 'tcp')
             with self.print_lock:
