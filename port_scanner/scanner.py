@@ -1,4 +1,4 @@
-import socket
+from socket import AF_INET, SOCK_STREAM, SOCK_DGRAM, socket, timeout
 from threading import Lock, Thread
 from queue import Queue
 
@@ -32,14 +32,13 @@ class Scanner:
 
     def scan_udp_port(self, port: int):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                               socket.IPPROTO_UDP) as sock:
-                sock.settimeout(1)
-                sock.sendto(b'ping', (self.host, port))
-                sock.recvfrom(1024)
-            protocol = self.get_protocol(port, 'udp')
+            with socket(AF_INET, SOCK_DGRAM) as sock:
+                sock.settimeout(3)
+                sock.sendto(b'hello', (self.host, port))
+                response = sock.recv(1024).decode('utf-8')
+            protocol = self.get_protocol(response)
             print(f'UDP {port} {protocol}')
-        except (socket.timeout, OSError):
+        except (timeout, OSError):
             pass
         except PermissionError:
             with self.print_lock:
@@ -47,21 +46,29 @@ class Scanner:
 
     def scan_tcp_port(self, port: int):
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            with socket(AF_INET, SOCK_STREAM) as sock:
                 sock.settimeout(0.5)
                 sock.connect((self.host, port))
-            protocol = self.get_protocol(port, 'tcp')
+                try:
+                    response = str(sock.recv(1024).decode('utf-8'))
+                except timeout:
+                    sock.send(f'GET / HTTP/1.1\n\n'.encode())
+                    response = sock.recv(1024).decode('utf-8')
+            protocol = self.get_protocol(response)
             with self.print_lock:
                 print(f'TCP {port} {protocol}')
-        except (socket.timeout, OSError, ConnectionRefusedError):
+        except (OSError, ConnectionRefusedError):
             pass
         except PermissionError:
             with self.print_lock:
                 print(f'TCP {port}: Not enough rights')
 
     @staticmethod
-    def get_protocol(port: int, transport: str) -> str:
-        try:
-            return socket.getservbyport(port, transport).upper()
-        except OSError:
-            return ''
+    def get_protocol(response: str) -> str:
+        if 'HTTP/1.1' in response:
+            return 'HTTP'
+        if 'SMTP' in response:
+            return 'SMTP'
+        if 'OK' in response:
+            return 'IMAP' if 'IMAP' in response else 'POP3'
+        return ''
