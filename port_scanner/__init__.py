@@ -4,7 +4,7 @@ from typing import List, Tuple
 import re
 
 
-__all__ = ['Scanner', 'PortScannerError', 'BadPortRangeError']
+__all__ = ['Scanner', 'PortScannerError', 'BadPortRangeError', 'scan']
 
 
 def verify_user_input(port_range: str) -> Tuple[int, int]:

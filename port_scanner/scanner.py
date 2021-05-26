@@ -69,6 +69,8 @@ class Scanner:
             return 'HTTP'
         if 'SMTP' in response:
             return 'SMTP'
+        if 'IMAP' in response:
+            return 'IMAP'
         if 'OK' in response:
-            return 'IMAP' if 'IMAP' in response else 'POP3'
+            return 'POP3'
         return ''

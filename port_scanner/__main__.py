@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
+from port_scanner import PortScannerError, scan
 from typing import Any, Dict
-import port_scanner
 
 
 def parse_args() -> Dict[str, Any]:
@@ -18,10 +18,10 @@ def parse_args() -> Dict[str, Any]:
 if __name__ == '__main__':
     try:
         args = parse_args()
-        port_scanner.scan(**args)
-    except port_scanner.PortScannerError as e:
+        scan(**args)
+    except PortScannerError as e:
         print(e.message)
         exit(1)
     except KeyboardInterrupt:
         print('\nTerminated.')
-        exit(1)
+        exit()
